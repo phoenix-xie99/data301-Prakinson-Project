@@ -1,0 +1,106 @@
+---
+title: "DATA301 EDA Report"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r echo=FALSE,include=FALSE}
+require(readr)
+require(ggplot2)
+require(ggthemes)
+warnings('off')
+```
+
+**The structure of the report is based on the "Report Marking Scheme" on page 4 of the project_briefing_2021_edit.pdf on Blackboard**
+
+# Part 1. Background and Data [1-3 pages, 6 marks]
+### 1.1 State which dataset(s) your group worked on, and their source  
+We work on the analysis of handwritten spirals, whose data were collected as part of a study with patients of Parkinson disease.  
+
+### 1.2 Explain briefly why the dataset is of interest, or what questions it could be used to answer; assume that the reader has never heard of your dataset
+To be filled.  
+
+### 1.3 State the types of data in the dataset(s) and the structure of the dataset(s). Are the data numerical, categorical, or both? Time series? Coordinates? Diagnostic categories? This does NOT need to be an exhaustive list of every variable, just a few comments on the overall types.
+
+Let's choose one example from each of the two groups (control and ill patients) to have a look at the datasets.  
+```{r message=FALSE,warning = FALSE}
+control_data <- read_table("./Data/Controles30jun14/C01/session00002/u00003s00002_hw000012.svc",
+                                    col_names = FALSE, skip = 1)
+names(control_data) <- c("x", "y", "Time", "On/Off", "Azimuth", "Altitude", "Pressure")
+
+patients_data <- read_table("./Data/Protocolo temblor/T001/session00001/u00005s00001_hw00001.svc", 
+                                    col_names = FALSE, skip = 1)
+names(patients_data) <- c("x", "y", "Time", "On/Off", "Azimuth", "Altitude", "Pressure")
+```
+Above section reads the control data and patients data. We already know that each dataset has seven variables with the time-ordered x and y coordinates, the time stamp, the on/off state of the pen, the azimuth, the altitude, and the pressure.  
+
+```{r}
+cat(class(control_data$x[1]),class(control_data$y[1]),class(control_data$Time[1]),
+    class(control_data$`On/Off`[1]),class(control_data$Azimuth[1]),
+    class(control_data$Altitude[1]),class(control_data$Pressure[1]))
+cat(class(patients_data$x[1]),class(patients_data$y[1]),class(patients_data$Time[1]),
+    class(patients_data$`On/Off`[1]),class(patients_data$Azimuth[1]),
+    class(patients_data$Altitude[1]),class(patients_data$Pressure[1]))
+summary(control_data)
+summary(patients_data)
+```
+From the above code outputs, we see that all seven variables are numerical. The only exception is the 'On/off' variable, which is a data type with a value of 0 or 1, meaning that it is also categorical. For 'x' and 'y', they represent the x-axis and y-axis coordinate values along the time series variable 'Time'.
+
+### 1.4 State how complete the dataset(s) are (i.e. how many missing, any structure to the missing data, whether there are errors in the data)
+```{r}
+cat(sum(is.na(control_data$x)),sum(is.na(control_data$y)),sum(is.na(control_data$Time)),
+    sum(is.na(control_data$`On/Off`)),sum(is.na(control_data$Azimuth)),
+    sum(is.na(control_data$Altitude)),sum(is.na(control_data$Pressure)))
+
+cat(sum(is.na(patients_data$x)),sum(is.na(patients_data$y)),sum(is.na(patients_data$Time)),
+    sum(is.na(patients_data$`On/Off`)),sum(is.na(patients_data$Azimuth)),
+    sum(is.na(patients_data$Altitude)),sum(is.na(patients_data$Pressure)))
+```
+There are no missing values for both healthy dataset and patients dataset from the above two code outputs.  
+
+### 1.5 If you used more than one dataset, state what steps you had to take to integrate the datasets  
+To be filled.(Alejandro stressed that the data integration part is critical in the 2nd meeting.)
+
+# Part 2. Ethics, Privacy and Security [1-2 pages, 6 marks]  
+### 2.1 Brief discussion of any ethical considerations that apply to your project  
+### 2.2 Brief discussion of any privacy concerns that might arise connected to your project  
+### 2.3 Brief discussion of what steps you could take to keep your project data and results secure (you do NOT need to carry this out, you just need to talk about it in the report)  
+Mason is working on this part.  
+
+# Part 3. Exploratory Data Analysis [3-8 pages, 15 marks]  
+**For this section, do NOT try to summarize everything you can find in the dataset(s). Select a subset, highlighting features that you thought were interesting in the data. The plots do not have to be complicated; simple bar charts and scatter plots are fine.**  
+  
+**- Several summary tables and/or plots, each describing one, two or three variables in the data that you thought were interesting**  
+**- Explain the definitions of the variables in each table/plot**  
+**- Comment on the main features of each plot**  
+**- Include suitable labels and keys for each plot**  
+**- adjust the point sizes and/or line thicknesses to improve readability**  
+**- Lay out all tables so that they are clearly readable and clearly labelled, and do not use excessive significant figures**  
+
+```{r out.width = "80%"}
+ggplot(control_data, aes(x=x, y=y)) +
+geom_point(size=.01) +
+coord_fixed()+
+ggtitle("Spiral plot for control data")
+ggplot(patients_data, aes(x=x, y=y)) +
+geom_point(size=.01) +
+coord_fixed()+
+ggtitle("Spiral plot for patients data")
+```
+
+Above are two spiral plots of x and y coordinates for control data and patients data respectively. We can intuitively see the movement trajectory of the corresponding handwritten spiral from the figure. The spiral drawn by normal control 
+was more smooth and regular than that of Parkinson’s Disease patient. This indicated that stiffness and tremor features were reflected in the hand movement of the patient.
+
+```{r out.width = "65%"}
+ggplot(control_data, aes(x=Time, y=x)) +
+  geom_point(col="red") +
+  geom_point(aes(x=Time, y=y), col="blue")+ xlab("Time") + ylab("Coordinate") +
+  ggtitle("Time vs. Coordinate (Blue/Red represent x/y value of Control data)")
+ggplot(patients_data, aes(x=Time, y=x)) +
+  geom_point(col="red") +
+  geom_point(aes(x=Time, y=y), col="blue")+ xlab("Time") + ylab("Coordinate") +
+  ggtitle("Time vs. Coordinate (Blue/Red represent x/y value of patients data)")
+```
+
+Above are two scatter plots of x/y coordinate vs Time for control data and patients data respectively. Blue points represent the x coordinate value change over time while red points represent the y coordinate value change over time. We see that the patterns of x and y values are very similar. But for different datasets, the patterns tend to be different. The line of control data is smoother with higher amplitude, while the line of patients data has more local changes and less amplitude.
