@@ -1,0 +1,76 @@
+---
+title: "EDA2"
+author: "warrinmaso"
+date: "24/08/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+require(readr)
+df <- read_table2("./data/ill/u00004s00001_hw00001.svc", col_names=FALSE, skip=1)
+names(df) <- c("x", "y", "Time", "On/Off", "Azimuth", "Altitude", "Pressure")
+head(df)
+```
+
+```{r}
+controls = list()
+control_labels = c()
+ills = list()
+ill_labels = c()
+
+```
+```{r}
+list.files('./data/control')
+direc = paste0("./data/control/",  "u00003s00002_hw00001.svc")
+df = as.data.frame(read_table2(direc, col_names=FALSE, skip=1))
+class(df)
+head(df)
+
+list.files('.data/control')
+```
+
+```{r}
+for(dset in list.files('./data/control')){
+  direc = paste0("./data/control/", dset)
+  df = read_table2(direc, col_names=FALSE, skip=1)
+  names(df) <- c("x", "y", "Time", "On/Off", "Azimuth", "Altitude", "Pressure")
+  len <- length(controls)
+  controls[[len+1]] <- df
+  control_labels[len+1] <- 0
+}
+
+for(dset in list.files('./data/ill')){
+  direc = paste0("./data/ill/", dset)
+  df = read_table2(direc, col_names=FALSE, skip=1)
+  names(df) <- c("x", "y", "Time", "On/Off", "Azimuth", "Altitude", "Pressure")
+  len <- length(ills)
+  ills[[len+1]] <- df
+  ill_labels[len+1] <- 1
+}
+
+unif_set <- list(raw_data = c(controls, ills),
+                 raw_labels = c(control_labels, ill_labels))
+  
+```
+
+```{
+for dset in os.listdir('./data/control'):
+    direc = "".join(["./data/control/", dset])
+    df = pd.read_table(direc)
+    controls.append(df)
+    control_labels.append(0)
+
+for dset in os.listdir('./data/ill'):        
+    direc = "".join(["./data/ill/", dset])
+    df = pd.read_table(direc)
+    ills.append(df)
+    ill_labels.append(1)
+
+unif_set["data"] = controls+ills
+unif_set["labels"] = control_labels+ill_labels
+```
