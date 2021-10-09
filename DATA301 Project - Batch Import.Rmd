@@ -1,0 +1,200 @@
+---
+title: "EDA2"
+author: "warrinmaso"
+date: "24/08/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, echo=FALSE}
+require(readr)
+library(pastecs)
+library(psych)
+library(ggplot2)
+```
+
+```{r}
+controls = list()
+control_labels = c()
+ills = list()
+ill_labels = c()
+
+```
+
+
+```{r, echo=FALSE}
+for(dset in list.files('./data/control')){
+  direc = paste0("./data/control/", dset)
+  df = read_table2(direc, col_names=FALSE, skip=1)
+  names(df) <- c("x", "y", "Time", "Pen_engaged", "Azimuth", "Altitude", "Pressure")
+  len <- length(controls)
+  if(length(df$x) > 1){
+    controls[[len+1]] <- df
+    control_labels[len+1] <- 0
+  }
+  
+}
+
+for(dset in list.files('./data/ill')){
+  direc = paste0("./data/ill/", dset)
+  df = read_table2(direc, col_names=FALSE, skip=1)
+  names(df) <- c("x", "y", "Time", "Pen_engaged", "Azimuth", "Altitude", "Pressure")
+  len <- length(ills)
+  
+  if(length(df$x) > 1){
+    ills[[len+1]] <- df
+    ill_labels[len+1] <- 1
+  }
+  
+}
+
+unif_set <- list(raw_data = c(controls, ills),
+                 raw_labels = c(control_labels, ill_labels))
+```
+
+```{r}
+processed_df <- data.frame(label=integer(), 
+                           X_changes = integer(),
+                           Y_changes = integer(),
+                           length = integer(),
+                           
+                           #x_abbe = double(),
+                           #y_abbe = double(),
+                           
+                           avg_x_speed = double(), 
+                           max_x_speed = double(),
+                           avg_y_speed = double(),
+                           max_y_speed = double(),
+                           
+                           avg_x_accel = double(),
+                           max_x_accel = double(),
+                           avg_y_accel = double(),
+                           max_y_accel = double(),
+                           
+                           pen_releases = integer(),
+                           avg_azimuth = double(),
+                           avg_altitude = double(),
+                           avg_pressure = double()
+)
+```
+
+```{r}
+missed_vals <- c()
+
+i <- 1
+for(dset in unif_set$raw_data){
+  df <- as.data.frame(dset)
+  
+  missing <- sum(is.na(df))
+  
+  missed_vals <- append(missed_vals, missing)
+  
+  processed_df[i, 'label'] <- unif_set$raw_labels[i]
+  
+  #processed_df[i, 'missing'] <- missing
+  
+  if(missing>0){
+    df <- na.omit(df)
+  }
+  
+  processed_df[i, 'X_changes'] <- turnpoints(df$x)$nturns
+  processed_df[i, 'Y_changes'] <- turnpoints(df$y)$nturns
+  
+  #processed_df[i, 'time_taken'] <- (df$Time[length(df)] - df$Time[1])
+  processed_df[i, 'length'] <- length(df$Time) #Due to the awful formatting of the times in the data, we are forced to use length
+  
+  #x_abbe <- 0.5 * (mssd(df$x) / var(df$x))#(var(df$x)/mssd(df$x))#
+  #y_abbe <- 0.5 * (mssd(df$y) / var(df$y))#(var(df$x)/mssd(df$x))#
+  
+  #processed_df[i, 'x_abbe'] <- x_abbe
+  #processed_df[i, 'y_abbe'] <- y_abbe
+  
+  #Calculate speed
+  x_speeds <- c()
+  xval_prior <- df$x[1]
+  y_speeds <- c()
+  yval_prior <- df$y[1]
+  timeval_prior <- df$Time[1]
+  
+  x_accels <- c()
+  y_accels <- c()
+  
+  for(j in 1:length(df$x)){
+    x_dist <- abs(df$x[j] - xval_prior)
+    y_dist <- abs(df$y[j] - yval_prior)
+    time <- df$Time[j] - timeval_prior
+    
+    if(j==1){
+      x_speeds[j] = 0
+      y_speeds[j] = 0
+      x_accels <- append(x_accels, 0)
+      y_accels <- append(y_accels, 0)
+    }
+    else{
+      x_speeds <- append(x_speeds, x_dist/time)
+      y_speeds <- append(y_speeds, y_dist/time)
+      x_accels <- append(x_accels, (x_speeds[j] - x_speeds[j-1])/time)
+      y_accels <- append(y_accels, (y_speeds[j] - y_speeds[j-1])/time)
+    }
+
+    xval_prior <- df$x[j]
+    yval_prior <- df$y[j]
+    timeval_prior <- df$Time[j]
+  }
+
+  processed_df[i, 'avg_x_speed'] <- median(x_speeds)
+  processed_df[i, 'avg_y_speed'] <- median(y_speeds)
+  processed_df[i, 'max_x_speed'] <- max(x_speeds)
+  processed_df[i, 'max_y_speed'] <- max(y_speeds)
+  
+  processed_df[i, 'avg_x_accel'] <- median(x_accels)
+  processed_df[i, 'max_x_accel'] <- max(x_accels)
+  processed_df[i, 'avg_y_accel'] <- median(y_accels)
+  processed_df[i, 'max_y_accel'] <- max(y_accels)
+  
+  processed_df[i, 'pen_releases'] <- sum(rle(df$Pen_engaged)$values) #Code from here 
+  #https://stackoverflow.com/questions/56288368/how-to-count-the-number-of-changes-in-column-r
+  
+  processed_df[i, 'avg_azimuth'] <- median(df$Azimuth)
+  processed_df[i, 'avg_altitude'] <- median(df$Altitude)
+  processed_df[i, 'avg_pressure'] <- median(df$Pressure)
+  
+  i <- i+1
+}
+
+processed_df$label <- as.factor(processed_df$label)
+```
+
+```{r}
+
+output <- write.csv(processed_df, "Processed Dataset.csv", quote=FALSE)
+```
+
+
+```{r}
+sum1 <- describe(processed_df[processed_df$label==0,])
+sum1 <- sum1[-1, -1:-2]
+sum2 <- describe(processed_df[processed_df$label==1,])
+sum2 <- sum2[-1, -1:-2]
+
+sum1_output <- write.csv(sum1, "sum_label_0.csv")
+sum2_output <- write.csv(sum2, "sum_label_1.csv")
+
+read.csv("sum_label_0.csv")
+```
+
+```{r}
+
+```
+
+```{r}
+ggplot(processed_df, aes(x=avg_x_speed, fill=label)) +
+    geom_histogram(bins = 10, position="dodge")
+
+ggplot(processed_df, aes(x=pen_releases, fill=label)) +
+    geom_density(alpha=0.3)
+```
